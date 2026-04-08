@@ -10,6 +10,17 @@
 # Office docs (not part of the game)
 *.docx
 
+# Web export in root (the docs/ copies are what GitHub Pages serves)
+/index.html
+/index.pck
+/index.js
+/index.wasm
+/index.png
+/index.icon.png
+/index.apple-touch-icon.png
+/index.audio.worklet.js
+/index.audio.position.worklet.js
+
 # OS files
 Thumbs.db
 .DS_Store
