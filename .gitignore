@@ -1,0 +1,15 @@
+# Godot cache (recompiled on open)
+.godot/
+
+# Import cache
+*.import
+
+# Audio/media originals (keep repo light)
+*.mp3
+
+# Office docs (not part of the game)
+*.docx
+
+# OS files
+Thumbs.db
+.DS_Store
