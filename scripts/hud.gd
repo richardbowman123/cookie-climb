@@ -2,6 +2,7 @@ class_name CookieHUD
 extends CanvasLayer
 
 var _bungee: Font
+var _touch_mode: bool = false
 var _cookie_label: Label
 var _height_label: Label
 var _blocks_label: Label
@@ -44,6 +45,7 @@ var _gameover_restart: Label
 
 func _ready() -> void:
 	layer = 10
+	_touch_mode = DisplayServer.is_touchscreen_available()
 	_load_font()
 	_build_hud()
 	_build_title_screen()
@@ -91,7 +93,7 @@ func _build_hud() -> void:
 	add_child(_blocks_label)
 
 	_controls_hint = Label.new()
-	_controls_hint.text = "E = PLACE CRATE"
+	_controls_hint.text = "" if _touch_mode else "E = PLACE CRATE"
 	_controls_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_controls_hint.position = Vector2(440, 660)
 	_controls_hint.size = Vector2(400, 40)
@@ -158,20 +160,21 @@ func _build_title_screen() -> void:
 		_title_overlay.add_child(right_banana)
 
 	_start_label = Label.new()
-	_start_label.text = "PRESS SPACE TO START"
+	_start_label.text = "TAP TO START" if _touch_mode else "PRESS SPACE TO START"
 	_start_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_start_label.position = Vector2(290, 420)
 	_start_label.size = Vector2(700, 60)
 	_style(_start_label, 28, Color.WHITE, 3)
 	_title_overlay.add_child(_start_label)
 
-	var controls := Label.new()
-	controls.text = "LEFT / RIGHT = MOVE    SPACE = JUMP"
-	controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	controls.position = Vector2(90, 500)
-	controls.size = Vector2(1100, 40)
-	_style(controls, 18, Color(0.8, 0.8, 0.8), 2)
-	_title_overlay.add_child(controls)
+	if not _touch_mode:
+		var controls := Label.new()
+		controls.text = "LEFT / RIGHT = MOVE    SPACE = JUMP"
+		controls.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		controls.position = Vector2(90, 500)
+		controls.size = Vector2(1100, 40)
+		_style(controls, 18, Color(0.8, 0.8, 0.8), 2)
+		_title_overlay.add_child(controls)
 
 func _build_level_intro() -> void:
 	_intro_overlay = ColorRect.new()
@@ -210,7 +213,7 @@ func _build_level_intro() -> void:
 	_intro_overlay.add_child(_intro_hint)
 
 	_intro_start = Label.new()
-	_intro_start.text = "PRESS SPACE TO CLIMB"
+	_intro_start.text = "TAP TO CLIMB" if _touch_mode else "PRESS SPACE TO CLIMB"
 	_intro_start.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_intro_start.position = Vector2(290, 480)
 	_intro_start.size = Vector2(700, 50)
@@ -274,7 +277,7 @@ func _build_tutorial_screen() -> void:
 	add_child(_tutorial_overlay)
 
 	_tutorial_hint = Label.new()
-	_tutorial_hint.text = "PLACE A CRATE WITH E"
+	_tutorial_hint.text = "TAP CRATE TO PLACE ONE" if _touch_mode else "PLACE A CRATE WITH E"
 	_tutorial_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_hint.position = Vector2(190, 50)
 	_tutorial_hint.size = Vector2(900, 60)
@@ -369,7 +372,7 @@ func _build_victory_screen() -> void:
 		_victory_overlay.add_child(banana)
 
 	var replay := Label.new()
-	replay.text = "PRESS SPACE TO PLAY AGAIN"
+	replay.text = "TAP TO PLAY AGAIN" if _touch_mode else "PRESS SPACE TO PLAY AGAIN"
 	replay.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	replay.position = Vector2(290, 590)
 	replay.size = Vector2(700, 50)
@@ -430,7 +433,7 @@ func _build_gameover_screen() -> void:
 	_gameover_overlay.add_child(_gameover_height)
 
 	_gameover_restart = Label.new()
-	_gameover_restart.text = "PRESS SPACE TO RETRY"
+	_gameover_restart.text = "TAP TO RETRY" if _touch_mode else "PRESS SPACE TO RETRY"
 	_gameover_restart.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_gameover_restart.position = Vector2(290, 460)
 	_gameover_restart.size = Vector2(700, 50)
@@ -467,6 +470,7 @@ func show_level_intro(level_num: int, level_name: String, target_m: int, hint: S
 	_intro_name.text = level_name
 	_intro_height.text = "CLIMB TO %dm" % target_m
 	_intro_hint.text = hint
+	_intro_start.text = "TAP TO CLIMB" if _touch_mode else "PRESS SPACE TO CLIMB"
 	_intro_overlay.visible = true
 	_gameover_overlay.visible = false
 	_complete_overlay.visible = false
@@ -480,8 +484,8 @@ func show_tutorial_intro() -> void:
 	_intro_level.text = "TUTORIAL"
 	_intro_name.text = "CRATE TRAINING"
 	_intro_height.text = "LEARN HOW TO USE CRATES"
-	_intro_hint.text = "PRESS E TO PLACE A CRATE"
-	_intro_start.text = "PRESS SPACE TO BEGIN"
+	_intro_hint.text = "USE THE CRATE BUTTON" if _touch_mode else "PRESS E TO PLACE A CRATE"
+	_intro_start.text = "TAP TO BEGIN" if _touch_mode else "PRESS SPACE TO BEGIN"
 	_intro_overlay.visible = true
 	_title_overlay.visible = false
 	_gameover_overlay.visible = false
@@ -506,7 +510,7 @@ func hide_tutorial_hint() -> void:
 	_tutorial_overlay.visible = false
 
 func show_tutorial_stage2() -> void:
-	_tutorial_hint.text = "JUMP, THEN QUICKLY PRESS E!"
+	_tutorial_hint.text = "JUMP, THEN QUICKLY TAP CRATE!" if _touch_mode else "JUMP, THEN QUICKLY PRESS E!"
 	_tutorial_sub.text = "A CRATE APPEARS IN THE AIR - LAND ON IT, THEN JUMP AGAIN!"
 
 func show_tutorial_complete() -> void:
@@ -526,10 +530,10 @@ func show_controls_hint() -> void:
 func show_level_complete(cookies: int, total: int, height_m: int, is_final: bool) -> void:
 	if is_final:
 		_complete_title.text = "YOU WIN!"
-		_complete_next.text = "PRESS SPACE TO PLAY AGAIN"
+		_complete_next.text = "TAP TO PLAY AGAIN" if _touch_mode else "PRESS SPACE TO PLAY AGAIN"
 	else:
 		_complete_title.text = "LEVEL COMPLETE!"
-		_complete_next.text = "PRESS SPACE FOR NEXT LEVEL"
+		_complete_next.text = "TAP FOR NEXT LEVEL" if _touch_mode else "PRESS SPACE FOR NEXT LEVEL"
 	_complete_cookies.text = "COOKIES: %d" % cookies
 	if total > 0:
 		var pct := int(float(cookies) / float(total) * 100.0)

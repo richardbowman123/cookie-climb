@@ -60,6 +60,9 @@ var _row_count: int = 0           # counts rows generated (for variety in level 
 var _last_plat_x: float = 0.0
 var _last_plat_w: float = 0.0
 
+# ─── Mobile menu tap ───
+var _screen_tapped: bool = false
+
 # ─── Victory bananas ───
 var _victory_bananas: Array = []
 
@@ -1097,22 +1100,30 @@ func _on_cookie_collected() -> void:
 
 # ─── Main Loop ───
 
+func _input(event: InputEvent) -> void:
+	# Track screen taps for mobile menu navigation
+	if event is InputEventScreenTouch and event.pressed:
+		_screen_tapped = true
+
 func _process(delta: float) -> void:
+	var tapped := _screen_tapped
+	_screen_tapped = false
+
 	match state:
 		State.TITLE:
-			if Input.is_action_just_pressed("jump"):
+			if Input.is_action_just_pressed("jump") or tapped:
 				_show_level_intro()
 			if Input.is_action_just_pressed("quit"):
 				get_tree().quit()
 
 		State.LEVEL_INTRO:
-			if Input.is_action_just_pressed("jump"):
+			if Input.is_action_just_pressed("jump") or tapped:
 				_start_playing()
 			if Input.is_action_just_pressed("quit"):
 				get_tree().quit()
 
 		State.TUTORIAL_INTRO:
-			if Input.is_action_just_pressed("jump"):
+			if Input.is_action_just_pressed("jump") or tapped:
 				hud.hide_tutorial_intro()
 				hud.show_tutorial_hint()
 				player.set_physics_process(true)
@@ -1129,21 +1140,21 @@ func _process(delta: float) -> void:
 			_process_playing(delta)
 
 		State.LEVEL_COMPLETE:
-			if Input.is_action_just_pressed("jump"):
+			if Input.is_action_just_pressed("jump") or tapped:
 				_next_level()
 			if Input.is_action_just_pressed("quit"):
 				get_tree().quit()
 
 		State.VICTORY:
 			_update_victory_bananas(delta)
-			if Input.is_action_just_pressed("jump"):
+			if Input.is_action_just_pressed("jump") or tapped:
 				s_level = 0
 				get_tree().reload_current_scene()
 			if Input.is_action_just_pressed("quit"):
 				get_tree().quit()
 
 		State.GAME_OVER:
-			if Input.is_action_just_pressed("jump"):
+			if Input.is_action_just_pressed("jump") or tapped:
 				# Replay current level (not back to Level 1)
 				get_tree().reload_current_scene()
 			if Input.is_action_just_pressed("quit"):
@@ -1239,9 +1250,11 @@ func _start_playing() -> void:
 	if s_level == 0:
 		# Level 1: no crates — player doesn't know about them yet
 		hud.set_crates_visible(false)
+		touch_controls.set_crate_visible(false)
 		player.block_count = 0  # can't place any
 	else:
 		hud.set_crates_visible(true)
+		touch_controls.set_crate_visible(true)
 		hud.show_controls_hint()
 	player.set_physics_process(true)
 	time_since_start = 0.0

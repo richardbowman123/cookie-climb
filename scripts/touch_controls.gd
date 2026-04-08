@@ -10,7 +10,7 @@ extends CanvasLayer
 # Touch buttons simulate the same input actions as the keyboard,
 # so the player code doesn't need any changes.
 
-var _buttons: Dictionary = {}  # action_name → { rect: Rect2, bg: ColorRect }
+var _buttons: Dictionary = {}  # action_name → { rect: Rect2, bg: ColorRect, lbl: Label }
 var _touches: Dictionary = {}  # touch_index → action_name
 var _active := false
 var _bungee: Font
@@ -34,13 +34,13 @@ func _load_font() -> void:
 		_bungee = sf
 
 func _build_buttons() -> void:
-	# Move buttons — bottom-left, large for easy thumb hits
-	_add_button("move_left", Rect2(20, 520, 150, 170), "<", 52)
-	_add_button("move_right", Rect2(190, 520, 150, 170), ">", 52)
+	# Move buttons — bottom-left, big for easy thumb hits
+	_add_button("move_left", Rect2(0, 460, 200, 260), "<", 60)
+	_add_button("move_right", Rect2(200, 460, 200, 260), ">", 60)
 
 	# Action buttons — bottom-right
-	_add_button("jump", Rect2(940, 500, 320, 190), "JUMP", 36)
-	_add_button("place_block", Rect2(940, 340, 200, 140), "CRATE", 24)
+	_add_button("jump", Rect2(860, 460, 420, 260), "JUMP", 40)
+	_add_button("place_block", Rect2(860, 270, 300, 180), "CRATE", 28)
 
 func _add_button(action: String, rect: Rect2, text: String, font_size: int) -> void:
 	# Semi-transparent rounded background
@@ -66,7 +66,7 @@ func _add_button(action: String, rect: Rect2, text: String, font_size: int) -> v
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(lbl)
 
-	_buttons[action] = { "rect": rect, "bg": bg }
+	_buttons[action] = { "rect": rect, "bg": bg, "lbl": lbl }
 
 func _input(event: InputEvent) -> void:
 	# Auto-switch between touch and keyboard modes
@@ -81,7 +81,6 @@ func _input(event: InputEvent) -> void:
 	# Handle touch start/end
 	if event is InputEventScreenTouch:
 		var touch: InputEventScreenTouch = event
-		# Convert screen position to viewport coordinates (handles stretch mode)
 		var pos := _to_viewport(touch.position)
 		if touch.pressed:
 			_on_touch_start(touch.index, pos)
@@ -95,9 +94,15 @@ func _input(event: InputEvent) -> void:
 		_on_touch_move(drag.index, pos)
 
 func _to_viewport(screen_pos: Vector2) -> Vector2:
-	# Convert screen coordinates to viewport coordinates (1280x720)
-	var transform := get_viewport().get_screen_transform()
-	return transform.affine_inverse() * screen_pos
+	# Convert screen coordinates to viewport coordinates (1280x720).
+	# Compute manually for reliability across desktop and mobile web.
+	var vp_size := Vector2(1280, 720)
+	var win_size := Vector2(DisplayServer.window_get_size())
+	if win_size.x <= 0 or win_size.y <= 0:
+		return screen_pos
+	var scale := minf(win_size.x / vp_size.x, win_size.y / vp_size.y)
+	var offset := (win_size - vp_size * scale) * 0.5
+	return (screen_pos - offset) / scale
 
 func _on_touch_start(index: int, pos: Vector2) -> void:
 	var btn := _button_at(pos)
@@ -105,10 +110,9 @@ func _on_touch_start(index: int, pos: Vector2) -> void:
 		_touches[index] = btn
 		Input.action_press(btn)
 		_set_highlight(btn, true)
-	else:
-		# Tap on empty area = jump (for menu screens: tap anywhere to continue)
-		_touches[index] = "jump"
-		Input.action_press("jump")
+	# No fallback — tapping empty space does nothing during gameplay.
+	# Menu screens use Input.is_action_just_pressed("jump") which
+	# catches the first touch via emulate_mouse_from_touch.
 
 func _on_touch_end(index: int) -> void:
 	if _touches.has(index):
@@ -136,6 +140,10 @@ func _on_touch_move(index: int, pos: Vector2) -> void:
 
 func _button_at(pos: Vector2) -> String:
 	for action in _buttons:
+		# Skip hidden buttons
+		var bg: ColorRect = _buttons[action]["bg"]
+		if not bg.visible:
+			continue
 		var rect: Rect2 = _buttons[action]["rect"]
 		if rect.has_point(pos):
 			return action
@@ -145,6 +153,13 @@ func _set_highlight(action: String, on: bool) -> void:
 	if _buttons.has(action):
 		var bg: ColorRect = _buttons[action]["bg"]
 		bg.color = Color(1, 1, 1, 0.35) if on else Color(1, 1, 1, 0.15)
+
+func set_crate_visible(show: bool) -> void:
+	if _buttons.has("place_block"):
+		var bg: ColorRect = _buttons["place_block"]["bg"]
+		var lbl: Label = _buttons["place_block"]["lbl"]
+		bg.visible = show
+		lbl.visible = show
 
 func _show() -> void:
 	_active = true
